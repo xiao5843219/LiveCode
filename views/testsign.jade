@@ -1,0 +1,78 @@
+html
+  head
+    title 簽核
+    style.
+      dd,
+      dt {
+      float: left;
+      margin: 0;
+      padding: 5px;
+      clear: both;
+      display: block;
+      width: 100%;
+      }
+      dt {
+      background: #ddd;
+      }
+      time {
+      color: gray;
+      }
+  body
+    #container 待簽核列表  
+
+    #result
+      each item in data.data.sign
+        p #{item.pdfID}  &nbsp;#{item.signfield}
+
+    img#qrcode(src='')
+    input#signVal(type='hidden', value=dataStr)
+    br
+    button#appsign 開始簽核
+    script(src='/javascripts/socket.io.js')
+    script(src='/javascripts/jquery-latest.min.js')
+
+    script.
+      var socket = io.connect('http://localhost:3000/');
+      var shortenCode;
+      
+      //頁面初始化時監聽長鏈接，并初始化二維碼或者直接調用app簽核的短碼
+      socket.on('connect',function(){
+          var dataStr=$('#signVal').val();
+          var data=JSON.parse(dataStr);
+          data.callback.socketid=socket.id;
+          $('#qrcode').attr('src','http://localhost:3000/qr/qrsign/'+JSON.stringify(data));
+          getShortenCode(JSON.stringify(data));
+      });
+
+      //如果是直接從移動設備打開app進行簽核，則直接返回短碼
+      function getShortenCode(data){
+        $.ajax({
+                 url : 'http://localhost:3000/qr/sign/'+data,
+                 cache : false, 
+                 async : false,
+                 type : "GET",
+                 dataType : 'text',
+                 success : function (result){
+                     shortenCode=result;
+                 },
+                 error : function(err){
+                     alert(JSON.stringify(err));
+                 }
+             });
+      }
+
+      //直接調用app簽核
+      $('#appsign').click(function(){
+        window.location.href="MMCA://"+shortenCode;
+      });
+
+
+      //簽核完成之後將簽核結果推送給頁面
+      socket.on('notification', function (data) {
+        var showData="";
+        for(var i=0;i<data.signedArray.length;i++){
+          showData=showData+"<p>"+data.signedArray[i].PdfID+"&nbsp;&nbsp;"+data.signedArray[i].SignField+"&nbsp;&nbsp;"
+          +data.signedArray[i].Signer+"&nbsp;&nbsp;"+data.signedArray[i].SignedID+"</p>";
+        }
+         $('#result').html(showData);
+      });

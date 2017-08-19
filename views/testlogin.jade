@@ -1,0 +1,61 @@
+html
+  head
+    title 用戶登錄
+    style.
+      dd,
+      dt {
+      float: left;
+      margin: 0;
+      padding: 5px;
+      clear: both;
+      display: block;
+      width: 100%;
+      }
+      dt {
+      background: #ddd;
+      }
+      time {
+      color: gray;
+      }
+  body
+    #container=tittle
+    image#qrcode(src='')
+    button#s_login 打開證書登錄
+    script(src='/javascripts/socket.io.js')
+    script(src='/javascripts/jquery-latest.min.js')
+    script.
+      var socket = io.connect('http://localhost:3000/'); 
+      socket.on('connect',function(){
+        var data={'action':'LOGIN',
+                'callback':{'type':'qr','socketid':socket.id},
+                'jsonVersion':'1.0',
+                'appkey': '378ccd05d87ddfb20c996929',
+                'appsecret': '3241ddaf76c513990cb197ee'};
+        $('#qrcode').attr('src','http://localhost:3000/qr/qrsign/'+JSON.stringify(data));
+        $('#s_login').click(function(){
+            data.callback.type='web';
+            getShortenCode(JSON.stringify(data));
+        });
+      });
+     
+      //如果是直接從移動設備打開app進行登錄，則直接返回短碼
+      function getShortenCode(param){
+        $.ajax({
+                 url : 'http://localhost:3000//qr/sign/'+param,
+                 cache : false,
+                 async : false,
+                 type : "GET",
+                 dataType : 'text',
+                 success : function (result){
+                    alert(result);
+                    window.location.href="MMCA://"+result;
+                 },
+                 error : function(err){
+                     alert(JSON.stringify(err));
+                 }
+             });
+      }
+
+      socket.on('notification', function (data) {
+         $('#container').html(data.Dept+'/'+data.RealName+'/'+data.UserName);
+      });
